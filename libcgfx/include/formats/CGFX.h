@@ -47,8 +47,36 @@ struct Model {
 	SkeletonInfo skeleton;
 };
 
+enum TexFormat: uint32_t {
+	TF_RGBA8    = 0x0,
+	TF_RGB8     = 0x1,
+	TF_RGBA5551 = 0x2,
+	TF_RGB565   = 0x3,
+	TF_RGBA4    = 0x4,
+	TF_LA8      = 0x5,
+	TF_HILO8    = 0x6,
+	TF_L8       = 0x7,
+	TF_A8       = 0x8,
+	TF_LA4      = 0x9,
+	TF_L4       = 0xa,
+	TF_A4       = 0xb,
+	TF_ETC1     = 0xc,
+	TF_ETC1A4   = 0xd
+};
+
 struct Texture {
-	//TODO
+	uint32_t flags;
+	uint32_t revision;
+	std::string name;
+
+	uint32_t width;
+	uint32_t height;
+
+	uint32_t mipmapsCount;
+
+	TexFormat format;
+
+	uint8_t* data;
 };
 
 struct LUT {

@@ -5,41 +5,20 @@ set(MAJOR "0")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${3ds_toolkit_SOURCE_DIR}/cmake")
 
 #
-# Libraries
+# Project flags
 #
 
-find_package(OpenGL REQUIRED)
-find_package(GLEW REQUIRED)
-find_package(SDL2 REQUIRED)
-
-#
-# Common code
-#
-
-include_directories(common)
-
-file(GLOB COMMON_CODE common/*.h common/formats/*.h)
-source_group("Headers" FILES ${COMMON_CODE})
+set(BUILD_CGFXVIEW TRUE CACHE BOOL "Build cgfxview command line (requires some dependencies)")
 
 #
 # Projects and tools
 #
 
-# CGFX Viewer
-file(GLOB CGFXVIEWER_SRC cgfxview/*.cpp)
-add_executable(cgfxview ${CGFXVIEWER_SRC})
+add_subdirectory(libcgfx)
 
-set_target_properties(cgfxview PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_features(cgfxview PRIVATE cxx_range_for)
-
-target_include_directories(cgfxview PUBLIC ${OPENGL_INCLUDE_DIRS})
-target_link_libraries(cgfxview ${OPENGL_LIBRARIES})
-
-target_include_directories(cgfxview PUBLIC ${GLEW_INCLUDE_DIRS})
-target_link_libraries(cgfxview ${GLEW_LIBRARIES})
-
-target_include_directories(cgfxview PUBLIC ${SDL2_INCLUDE_DIR})
-target_link_libraries(cgfxview ${SDL2_LIBRARY})
+if(BUILD_CGFXVIEW)
+	add_subdirectory(cgfxview)
+endif()
 
 #
 # Utils / Extra
