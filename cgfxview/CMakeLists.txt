@@ -27,3 +27,6 @@ target_link_libraries(cgfxview ${GLEW_LIBRARIES})
 
 target_include_directories(cgfxview PUBLIC ${SDL2_INCLUDE_DIR})
 target_link_libraries(cgfxview ${SDL2_LIBRARY})
+
+target_include_directories(cgfxview PUBLIC ${LIBCGFX_INCLUDE_DIR})
+target_link_libraries(cgfxview libcgfx)
