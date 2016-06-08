@@ -48,7 +48,17 @@ bool cgfx::CGFX::loadFile(const uint8_t* data, const size_t size) {
 	}
 
 	cgdata.models.resize(modelCount);
-	cgdata.textures.resize(modelCount);
+	cgdata.textures.resize(texCount);
+
+	// Read and parse models
+	if (modelCount > 0) {
+		//TODO
+	}
+
+	// Read and parse textures
+	if (texCount > 0) {
+		//TODO
+	}
 
 	hasLoaded = true;
 	return true;
