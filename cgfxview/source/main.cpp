@@ -30,14 +30,33 @@ bool readFile(const char* path, uint8_t** buffer, size_t* bufsize) {
 }
 
 void printInfo(const cgfx::CGFXData& cgfx) {
-	std::printf("CGFX ver. %d - %d blocks\r\n",
-				cgfx.version,
-				cgfx.blockCount);
-	std::printf("%d model%s, %d texture%s\r\n",
-				cgfx.models.size(),
-				cgfx.models.size() > 1 ? "s" : "",
-				cgfx.textures.size(),
-				cgfx.textures.size() > 1 ? "s" : "");
+	std::printf("CGFX ver. %x - %d blocks\r\n",
+	            cgfx.version,
+	            cgfx.blockCount);
+
+	std::printf("%d model%s, %d texture%s\r\n\r\n",
+	            cgfx.models.size(),
+	            cgfx.models.size() > 1 ? "s" : "",
+	            cgfx.textures.size(),
+	            cgfx.textures.size() > 1 ? "s" : "");
+
+	for (const std::pair<cgfx::Node, cgfx::Model>& mdlPair : cgfx.models) {
+		const cgfx::Model& model = mdlPair.second;
+		std::printf("  Model \"%s\" (id: %s/%x)\r\n",
+		            model.name.c_str(),
+		            mdlPair.first.name.c_str(),
+		            mdlPair.first.ref);
+		std::printf("\r\n");
+	}
+
+	for (const std::pair<cgfx::Node, cgfx::Texture>& texPair : cgfx.textures) {
+		const cgfx::Texture& texture = texPair.second;
+		std::printf("  Texture \"%s\" (id: %s/%x)\r\n",
+		            texture.name.c_str(),
+		            texPair.first.name.c_str(),
+		            texPair.first.ref);
+		std::printf("\r\n");
+	}
 }
 
 void printUsage(const char* filename) {

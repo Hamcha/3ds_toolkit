@@ -8,6 +8,7 @@ namespace cgfx {
 	private:
 		CGFXData cgdata;
 		bool hasLoaded = false;
+		bool diffEndian = false;
 
 	public:
 		/*! \brief Return underlying CGFX data

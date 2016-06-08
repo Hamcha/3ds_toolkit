@@ -12,7 +12,7 @@ find_package(SDL2 REQUIRED)
 # Source files and linking
 #
 
-file(GLOB CGFXVIEWER_SRC source/*.cpp)
+file(GLOB_RECURSE CGFXVIEWER_SRC source/*.cpp)
 
 add_executable(cgfxview ${CGFXVIEWER_SRC})
 

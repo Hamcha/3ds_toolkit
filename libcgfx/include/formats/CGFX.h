@@ -3,15 +3,30 @@
 #include <cstdint>
 
 #include <vector>
+#include <map>
 
 #include "../formatTypes.h"
 
-enum Endianess: uint16_t {
-	DiffEndian = 0xFFFE,
-	SameEndian = 0xFEFF
-};
+
 
 namespace cgfx {
+
+	enum Endianess : uint16_t {
+		DiffEndian = 0xFFFE,
+		SameEndian = 0xFEFF
+	};
+
+	struct Node {
+		uint32_t ref;
+
+		Node* left;
+		Node* right;
+
+		std::string name;
+
+		bool operator==(const Node& other) const { return ref != other.ref; }
+		bool operator<(const Node& other) const { return ref > other.ref; }
+	};
 
 	struct Mesh {
 		//TODO
@@ -34,9 +49,8 @@ namespace cgfx {
 	};
 
 	struct Model {
-		uint32_t type;
+		uint32_t flags;
 		uint32_t revision;
-
 		std::string name;
 
 		Vector3 position;
@@ -46,10 +60,10 @@ namespace cgfx {
 		Mat43 local;
 		Mat43 world;
 
-		std::vector<Mesh> meshes;
-		std::vector<Shape> shapes;
-		std::vector<MeshNode> meshNodes;
-		std::vector<Material> materials;
+		std::map<Node, Mesh> meshes;
+		std::map<Node, Shape> shapes;
+		std::map<Node, MeshNode> meshNodes;
+		std::map<Node, Material> materials;
 
 		SkeletonInfo skeleton;
 	};
@@ -143,23 +157,23 @@ namespace cgfx {
 		uint16_t version;
 		uint32_t blockCount;
 
-		std::vector<Model> models;
-		std::vector<Texture> textures;
+		std::map<Node, Model> models;
+		std::map<Node, Texture> textures;
 
-		std::vector<LUT> lookupTables;
-		std::vector<Fog> fogs;
-		std::vector<Light> lights;
-		std::vector<Shader> shaders;
-		std::vector<Camera> cameras;
-		std::vector<Emitter> emitters;
-		std::vector<Particles> particles;
-		std::vector<Environment> environments;
+		std::map<Node, LUT> lookupTables;
+		std::map<Node, Fog> fogs;
+		std::map<Node, Light> lights;
+		std::map<Node, Shader> shaders;
+		std::map<Node, Camera> cameras;
+		std::map<Node, Emitter> emitters;
+		std::map<Node, Particles> particles;
+		std::map<Node, Environment> environments;
 
-		std::vector<BoneAnimation> boneAnimations;
-		std::vector<LightAnimation> lightAnimations;
-		std::vector<CameraAnimation> cameraAnimations;
-		std::vector<MaterialAnimation> materialAnimations;
-		std::vector<VisibilityAnimation> visibilityAnimations;
+		std::map<Node, BoneAnimation> boneAnimations;
+		std::map<Node, LightAnimation> lightAnimations;
+		std::map<Node, CameraAnimation> cameraAnimations;
+		std::map<Node, MaterialAnimation> materialAnimations;
+		std::map<Node, VisibilityAnimation> visibilityAnimations;
 	};
 
 }

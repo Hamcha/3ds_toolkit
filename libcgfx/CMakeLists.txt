@@ -4,8 +4,8 @@ project(libcgfx)
 # Source files and linking
 #
 
-file(GLOB LIBCGFX_SRC source/*.cpp source/formatters/*.cpp)
-file(GLOB LIBCGFX_HEADERS include/*.h include/formatters/*.h)
+file(GLOB_RECURSE LIBCGFX_SRC source/*.cpp)
+file(GLOB_RECURSE LIBCGFX_HEADERS include/*.h)
 
 set(LIBCGFX_INCLUDE_DIR include)
 
