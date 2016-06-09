@@ -30,11 +30,11 @@ bool readFile(const char* path, uint8_t** buffer, size_t* bufsize) {
 }
 
 void printInfo(const cgfx::CGFXData& cgfx) {
-	std::printf("CGFX ver. %x - %d blocks\r\n",
+	std::printf("CGFX ver. %x - %lu blocks\r\n",
 	            cgfx.version,
 	            cgfx.blockCount);
 
-	std::printf("%d model%s, %d texture%s\r\n\r\n",
+	std::printf("%llu model%s, %llu texture%s\r\n\r\n",
 	            cgfx.models.size(),
 	            cgfx.models.size() > 1 ? "s" : "",
 	            cgfx.textures.size(),
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if ((flags | FlPrintInfo) != 0) {
+	if ((flags & FlPrintInfo) != 0) {
 		std::printf("Info for %s:\r\n\r\n", filePath.c_str());
 		printInfo(cgfxFile.data());
 
