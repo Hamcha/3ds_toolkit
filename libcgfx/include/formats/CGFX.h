@@ -2,12 +2,7 @@
 
 #include <cstdint>
 
-#include <vector>
 #include <map>
-
-#include "../formatTypes.h"
-
-
 
 namespace cgfx {
 
@@ -26,6 +21,14 @@ namespace cgfx {
 
 		bool operator==(const Node& other) const { return ref != other.ref; }
 		bool operator<(const Node& other) const { return ref > other.ref; }
+	};
+
+	struct Vector3 {
+		float x, y, z;
+	};
+
+	struct Mat43 {
+		float a[4 * 3];
 	};
 
 	struct Mesh {

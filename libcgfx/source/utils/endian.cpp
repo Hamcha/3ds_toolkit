@@ -13,3 +13,12 @@ void endianSwap(uint32_t& u32) {
 	uint8_t b0 =  u32        & 0xff;
 	u32 = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
 }
+
+void endianSwap(float& fl) {
+	char* flbytes = (char*)&fl;
+	char flcopy[4] = { flbytes[0], flbytes[1], flbytes[2], flbytes[3] };
+	flbytes[0] = flcopy[3];
+	flbytes[1] = flcopy[2];
+	flbytes[2] = flcopy[1];
+	flbytes[3] = flcopy[0];
+}

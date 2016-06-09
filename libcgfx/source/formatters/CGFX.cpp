@@ -1,6 +1,8 @@
 #include <formatters/CGFX.h>
 #include <utils/endian.h>
 
+#include <vector>
+
 struct DICTNode {
 	uint32_t refbit;
 	uint16_t left, right;
@@ -64,6 +66,19 @@ static cgfx::Node nodeFromDICT(const DICTNode& src, const std::vector<cgfx::Node
 	return cgfx::Node{ src.refbit, nodes.at(src.left), nodes.at(src.right), std::string((const char*)src.realNameOffset) };
 }
 
+static cgfx::Vector3 readVec3(const uint8_t* data, const bool diffEndian) {
+	cgfx::Vector3 vec;
+	memcpy(&vec.x, data,     4);
+	memcpy(&vec.y, data + 4, 4);
+	memcpy(&vec.z, data + 8, 4);
+	if (diffEndian) {
+		endianSwap(vec.x);
+		endianSwap(vec.y);
+		endianSwap(vec.z);
+	}
+	return vec;
+}
+
 static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 	cgfx::Model mdl;
 
@@ -88,6 +103,11 @@ static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 		endianSwap(nameOffset);
 	}
 	mdl.name = std::string((const char*)(data + 0x0c + nameOffset));
+
+	// Get position/rotation/scale
+	mdl.scale    = readVec3(data + 0x30, diffEndian);
+	mdl.rotation = readVec3(data + 0x3c, diffEndian);
+	mdl.position = readVec3(data + 0x48, diffEndian);
 
 	//TODO Parse rest of the model (duh)
 

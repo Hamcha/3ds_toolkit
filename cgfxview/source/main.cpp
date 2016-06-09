@@ -29,6 +29,12 @@ bool readFile(const char* path, uint8_t** buffer, size_t* bufsize) {
 	return true;
 }
 
+static inline std::string printVec3(const cgfx::Vector3& vec3) {
+	char s[128] = { 0 };
+	int len = std::sprintf(s, "{ x %.2f y %.2f z %.2f }", vec3.x, vec3.y, vec3.z);
+	return std::string(s, len);
+}
+
 void printInfo(const cgfx::CGFXData& cgfx) {
 	std::printf("CGFX ver. %x - %lu blocks\r\n",
 	            cgfx.version,
@@ -42,16 +48,20 @@ void printInfo(const cgfx::CGFXData& cgfx) {
 
 	for (const std::pair<cgfx::Node, cgfx::Model>& mdlPair : cgfx.models) {
 		const cgfx::Model& model = mdlPair.second;
-		std::printf("  Model \"%s\" (id: %s/%x)\r\n",
+		std::printf("Model \"%s\" (id %s/%x)\r\n",
 		            model.name.c_str(),
 		            mdlPair.first.name.c_str(),
 		            mdlPair.first.ref);
+		std::printf("  Pos %s\r\n  Rot %s\r\n  Scl %s\r\n",
+					printVec3(model.position).c_str(),
+					printVec3(model.rotation).c_str(),
+					printVec3(model.scale).c_str());
 		std::printf("\r\n");
 	}
 
 	for (const std::pair<cgfx::Node, cgfx::Texture>& texPair : cgfx.textures) {
 		const cgfx::Texture& texture = texPair.second;
-		std::printf("  Texture \"%s\" (id: %s/%x)\r\n",
+		std::printf("Texture \"%s\" (id %s/%x)\r\n",
 		            texture.name.c_str(),
 		            texPair.first.name.c_str(),
 		            texPair.first.ref);
