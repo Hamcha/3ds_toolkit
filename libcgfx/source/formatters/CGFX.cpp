@@ -60,7 +60,7 @@ static DICT readDICT(const uint8_t* data, const bool diffEndian) {
 	return out;
 }
 
-static cgfx::Node nodeFromDICT(const DICTNode& src, const std::vector<cgfx::Node*> nodes) {
+static cgfx::Node nodeFromDICT(const DICTNode& src, const std::vector<cgfx::Node*>& nodes) {
 	return cgfx::Node{ src.refbit, nodes.at(src.left), nodes.at(src.right), std::string((const char*)src.realNameOffset) };
 }
 
