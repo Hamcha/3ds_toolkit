@@ -79,6 +79,19 @@ static cgfx::Vector3 readVec3(const uint8_t* data, const bool diffEndian) {
 	return vec;
 }
 
+static cgfx::Mat43 readMat43(const uint8_t* data, const bool diffEndian) {
+	cgfx::Mat43 mat;
+	memcpy(&mat.a, data, 4*(4*3));
+
+	if (diffEndian) {
+		for (uint8_t i = 0; i < 4*3; i++) {
+			endianSwap(mat.a[i]);
+		}
+	}
+
+	return mat;
+}
+
 static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 	cgfx::Model mdl;
 
@@ -108,6 +121,10 @@ static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 	mdl.scale    = readVec3(data + 0x30, diffEndian);
 	mdl.rotation = readVec3(data + 0x3c, diffEndian);
 	mdl.position = readVec3(data + 0x48, diffEndian);
+
+	// Read local/world matrices
+	mdl.local = readMat43(data + 0x54, diffEndian);
+	mdl.world = readMat43(data + 0x84, diffEndian);
 
 	//TODO Parse rest of the model (duh)
 

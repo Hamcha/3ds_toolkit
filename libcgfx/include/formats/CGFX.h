@@ -28,7 +28,7 @@ namespace cgfx {
 	};
 
 	struct Mat43 {
-		float a[4 * 3];
+		float a[4*3];
 	};
 
 	struct Mesh {
