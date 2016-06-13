@@ -29,6 +29,15 @@ namespace cgfx {
 		 *  \return true if the CGFX was successfully loaded and parsed, false otherwise
 		 */
 		bool loadFile(const uint8_t* data, const size_t size);
+
+		/*! \brief Serialize CGFX file to byte buffer
+		*
+		*  \param data Output buffer containing the CGFX file data
+		*  \param size Size of the buffer (# of bytes)
+		*
+		*  \return true if the CGFX was successfully serialized, false otherwise
+		*/
+		bool serialize(uint8_t** data, size_t* size);
 	};
 
 }

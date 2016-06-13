@@ -1,7 +1,7 @@
 #include <formatters/CGFX.h>
 #include <utils/endian.h>
 
-#include <vector>
+#include <functional>
 
 struct DICTNode {
 	uint32_t refbit;
@@ -66,6 +66,35 @@ static cgfx::Node nodeFromDICT(const DICTNode& src, const std::vector<cgfx::Node
 	return cgfx::Node{ src.refbit, nodes.at(src.left), nodes.at(src.right), std::string((const char*)src.realNameOffset) };
 }
 
+template<typename T>
+static void readDICTMap(const uint8_t* data, std::function<T(const uint8_t*, bool)> readFn, std::map<cgfx::Node, T>& map, bool diffEndian) {
+	uint32_t dictOffset;
+	memcpy(&dictOffset, data, 4);
+	if (diffEndian) {
+		endianSwap(dictOffset);
+	}
+
+	DICT dict = readDICT(data + dictOffset, diffEndian);
+
+	// Grab and parse each texture from the DICT
+	std::vector<cgfx::Node*> nodeList = {};
+	nodeList.resize(dict.nodes.size());
+	for (const DICTNode& node : dict.nodes) {
+		// Parse node and add to local node list
+		cgfx::Node mapNode = nodeFromDICT(node, nodeList);
+		nodeList.push_back(&mapNode);
+
+		// Ignore root node
+		if (node.refbit == 0xffffffff) {
+			continue;
+		}
+
+		// Parse model and add to model list
+		T mesh = readFn(node.realDataOffset, diffEndian);
+		map[mapNode] = mesh;
+	}
+}
+
 static cgfx::Vector3 readVec3(const uint8_t* data, const bool diffEndian) {
 	cgfx::Vector3 vec;
 	memcpy(&vec.x, data,     4);
@@ -90,6 +119,34 @@ static cgfx::Mat43 readMat43(const uint8_t* data, const bool diffEndian) {
 	}
 
 	return mat;
+}
+
+static cgfx::Mesh readMesh(const uint8_t* data, const bool diffEndian) {
+	cgfx::Mesh mesh;
+
+	// Check segment signature
+	if (strncmp("SOBJ", (char*)(data + 0x04), 4) != 0) {
+		std::fprintf(stderr, "PARSE ERR: Failed SOBJ signature check\r\n");
+		return mesh;
+	}
+
+	// Copy basic data from header
+	memcpy(&mesh.flags, data, 4);
+	memcpy(&mesh.revision, data + 0x08, 4);
+	if (diffEndian) {
+		endianSwap(mesh.flags);
+		endianSwap(mesh.revision);
+	}
+
+	// Get name from offset
+	uint32_t nameOffset;
+	memcpy(&nameOffset, data + 0x0c, 4);
+	if (diffEndian) {
+		endianSwap(nameOffset);
+	}
+	mesh.name = std::string((const char*)(data + 0x0c + nameOffset));
+
+	return mesh;
 }
 
 static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
@@ -126,6 +183,17 @@ static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 	mdl.local = readMat43(data + 0x54, diffEndian);
 	mdl.world = readMat43(data + 0x84, diffEndian);
 
+	// Read meshes
+	uint32_t meshCount;
+	memcpy(&meshCount, data + 0xb4, 4);
+	if (diffEndian) {
+		endianSwap(meshCount);
+	}
+
+	if (meshCount > 0) {
+		readDICTMap<cgfx::Mesh>(data + 0xb8, readMesh, mdl.meshes, diffEndian);
+	}
+
 	//TODO Parse rest of the model (duh)
 
 	return mdl;
@@ -155,6 +223,30 @@ static cgfx::Texture readTXOB(const uint8_t* data, const bool diffEndian) {
 		endianSwap(nameOffset);
 	}
 	tex.name = std::string((const char*)(data + 0x0c + nameOffset));
+
+	// Get width/height
+	memcpy(&tex.width,  data + 0x18, 4);
+	memcpy(&tex.height, data + 0x1c, 4);
+	if (diffEndian) {
+		endianSwap(tex.width);
+		endianSwap(tex.height);
+	}
+
+	// Get texture format
+	memcpy(&tex.format, data + 0x34, 4);
+	if (diffEndian) {
+		endianSwap((uint32_t&)tex.format);
+	}
+
+	// Get texture data size
+	uint32_t size;
+	memcpy(&size, data + 0x44, 4);
+	if (diffEndian) {
+		endianSwap(size);
+	}
+
+	// Copy texture data into data vector
+	tex.data = std::vector<uint8_t>(data + 0x48, data + 0x48 + size);
 
 	//TODO Parse rest of the texture (duh)
 
@@ -199,68 +291,29 @@ bool cgfx::CGFX::loadFile(const uint8_t* data, const size_t size) {
 
 	// Read and parse models
 	if (modelCount > 0) {
-		uint32_t dictOffset;
-		memcpy(&dictOffset, data + dataOff + 0x0c, 4);
-		if (diffEndian) {
-			endianSwap(dictOffset);
-		}
-
-		DICT modelDict = readDICT(data + dataOff + 0x0c + dictOffset, diffEndian);
-		if (modelDict.nodes.size() < 1) {
-			return false;
-		}
-		
-		// Grab and parse each model from the DICT
-		std::vector<Node*> nodeList = {};
-		nodeList.resize(modelDict.nodes.size());
-		for (const DICTNode& node : modelDict.nodes) {
-			// Parse node and add to local node list
-			Node mapNode = nodeFromDICT(node, nodeList);
-			nodeList.push_back(&mapNode);
-
-			// Ignore root node
-			if (node.refbit == 0xffffffff) {
-				continue;
-			}
-
-			// Parse model and add to model list
-			Model model = readCMDL(node.realDataOffset, diffEndian);
-			cgdata.models[mapNode] = model;
-		}
+		readDICTMap<Model>(data + dataOff + 0x0c, readCMDL, cgdata.models, diffEndian);
 	}
 
 	// Read and parse textures
 	if (texCount > 0) {
-		uint32_t dictOffset;
-		memcpy(&dictOffset, data + dataOff + 0x14, 4);
-		if (diffEndian) {
-			endianSwap(dictOffset);
-		}
-
-		DICT texDict = readDICT(data + dataOff + 0x14 + dictOffset, diffEndian);
-		if (texDict.nodes.size() < 1) {
-			return false;
-		}
-
-		// Grab and parse each texture from the DICT
-		std::vector<Node*> nodeList = {};
-		nodeList.resize(texDict.nodes.size());
-		for (const DICTNode& node : texDict.nodes) {
-			// Parse node and add to local node list
-			Node mapNode = nodeFromDICT(node, nodeList);
-			nodeList.push_back(&mapNode);
-
-			// Ignore root node
-			if (node.refbit == 0xffffffff) {
-				continue;
-			}
-
-			// Parse model and add to model list
-			Texture texture = readTXOB(node.realDataOffset, diffEndian);
-			cgdata.textures[mapNode] = texture;
-		}
+		readDICTMap<Texture>(data + dataOff + 0x14, readTXOB, cgdata.textures, diffEndian);
 	}
 
 	hasLoaded = true;
+	return true;
+}
+
+bool cgfx::CGFX::serialize(uint8_t** data, size_t* size) {
+	//TODO Serialize everything else first
+
+	// Initialize with signature and little-endianess
+	std::vector<uint8_t> bytes = { 'C', 'G', 'F', 'X', 0xff, 0xfe };
+	//TODO Version and block count
+
+	// Copy serialized data to buffer
+	*size = bytes.size();
+	*data = (uint8_t*)malloc(*size);
+	std::copy(bytes.begin(), bytes.end(), *data);
+
 	return true;
 }

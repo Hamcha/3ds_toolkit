@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <map>
+#include <vector>
 
 namespace cgfx {
 
@@ -32,7 +33,20 @@ namespace cgfx {
 	};
 
 	struct Mesh {
-		//TODO
+		uint32_t flags;
+		uint32_t revision;
+		std::string name;
+		std::string nodeName;
+
+		Vector3 positionOffset;
+
+		//TODO Face groups, Vertex groups
+
+		uint32_t shapeIndex;
+		uint32_t materialIndex;
+		bool     visible;
+		uint8_t  renderPriority;
+		uint16_t meshNodeVisibilityIndex;
 	};
 
 	struct Shape {
@@ -100,7 +114,7 @@ namespace cgfx {
 
 		TexFormat format;
 
-		uint8_t* data;
+		std::vector<uint8_t> data;
 	};
 
 	struct LUT {
@@ -178,5 +192,4 @@ namespace cgfx {
 		std::map<Node, MaterialAnimation> materialAnimations;
 		std::map<Node, VisibilityAnimation> visibilityAnimations;
 	};
-
 }

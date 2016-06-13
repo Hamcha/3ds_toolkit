@@ -56,6 +56,16 @@ void printInfo(const cgfx::CGFXData& cgfx) {
 					printVec3(model.position).c_str(),
 					printVec3(model.rotation).c_str(),
 					printVec3(model.scale).c_str());
+
+		std::printf("  %d meshes\r\n",
+					model.meshes.size());
+		for (const std::pair<cgfx::Node, cgfx::Mesh>& meshPair : model.meshes) {
+			const cgfx::Mesh& mesh = meshPair.second;
+			std::printf("  -  Mesh \"%s\" (id %s/%x)\r\n",
+						mesh.name.c_str(),
+						meshPair.first.name.c_str(),
+						meshPair.first.ref);
+		}
 		std::printf("\r\n");
 	}
 
@@ -65,6 +75,10 @@ void printInfo(const cgfx::CGFXData& cgfx) {
 		            texture.name.c_str(),
 		            texPair.first.name.c_str(),
 		            texPair.first.ref);
+		std::printf("  %lu x %lu - %llu bytes\r\n",
+		            texture.width,
+		            texture.height,
+		            texture.data.size());
 		std::printf("\r\n");
 	}
 }
