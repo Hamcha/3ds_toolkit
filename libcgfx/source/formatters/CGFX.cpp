@@ -67,7 +67,7 @@ static cgfx::Node nodeFromDICT(const DICTNode& src, const std::vector<cgfx::Node
 }
 
 template<typename T>
-static void readDICTMap(const uint8_t* data, std::function<T(const uint8_t*, bool)> readFn, std::map<cgfx::Node, T>& map, bool diffEndian) {
+static void readDICTMap(const uint8_t* data, bool diffEndian, std::function<T(const uint8_t*, bool)> readFn, std::map<cgfx::Node, T>& map) {
 	uint32_t dictOffset;
 	memcpy(&dictOffset, data, 4);
 	if (diffEndian) {
@@ -191,7 +191,7 @@ static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 	}
 
 	if (meshCount > 0) {
-		readDICTMap<cgfx::Mesh>(data + 0xb8, readMesh, mdl.meshes, diffEndian);
+		readDICTMap<cgfx::Mesh>(data + 0xb8, diffEndian, readMesh, mdl.meshes);
 	}
 
 	//TODO Parse rest of the model (duh)
@@ -291,12 +291,12 @@ bool cgfx::CGFX::loadFile(const uint8_t* data, const size_t size) {
 
 	// Read and parse models
 	if (modelCount > 0) {
-		readDICTMap<Model>(data + dataOff + 0x0c, readCMDL, cgdata.models, diffEndian);
+		readDICTMap<Model>(data + dataOff + 0x0c, diffEndian, readCMDL, cgdata.models);
 	}
 
 	// Read and parse textures
 	if (texCount > 0) {
-		readDICTMap<Texture>(data + dataOff + 0x14, readTXOB, cgdata.textures, diffEndian);
+		readDICTMap<Texture>(data + dataOff + 0x14, diffEndian, readTXOB, cgdata.textures);
 	}
 
 	hasLoaded = true;
