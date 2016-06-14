@@ -2,13 +2,19 @@
 
 #include <cstdint>
 
+#include <functional>
 #include <map>
 #include <vector>
 
 namespace cgfx {
-	enum Endianess : uint16_t {
-		DiffEndian = 0xFFFE,
-		SameEndian = 0xFEFF
+	struct DICTNode {
+		uint32_t refbit;
+		uint16_t left, right;
+		uint32_t nameOffset;
+		uint32_t dataOffset;
+
+		uint8_t* realNameOffset;
+		uint8_t* realDataOffset;
 	};
 
 	struct Node {
@@ -21,6 +27,21 @@ namespace cgfx {
 
 		bool operator==(const Node& other) const { return ref != other.ref; }
 		bool operator<(const Node& other) const { return ref > other.ref; }
+
+		static Node fromDICT(const DICTNode& src, const std::vector<Node*>& nodes);
+	};
+
+	struct DICT {
+		uint32_t entriesCount;
+		std::vector<DICTNode> nodes;
+
+		static DICT read(const uint8_t* data, const bool diffEndian);
+		//TODO write(uint8_t** data, size_t* size);
+	};
+
+	enum Endianess : uint16_t {
+		DiffEndian = 0xFFFE,
+		SameEndian = 0xFEFF
 	};
 
 	struct Vector3 {
@@ -209,4 +230,33 @@ namespace cgfx {
 		static CGFX read(const uint8_t* data);
 		bool write(uint8_t** data, size_t* size);
 	};
+
+	template<typename T>
+	void readDictMap(const uint8_t* data, bool diffEndian, std::function<T(const uint8_t*, bool)> readFn, std::map<Node, T>& map) {
+		uint32_t dictOffset;
+		memcpy(&dictOffset, data, 4);
+		if (diffEndian) {
+			endianSwap(dictOffset);
+		}
+
+		DICT dict = DICT::read(data + dictOffset, diffEndian);
+
+		// Grab and parse each texture from the DICT
+		std::vector<Node*> nodeList = {};
+		nodeList.resize(dict.nodes.size());
+		for (const DICTNode& node : dict.nodes) {
+			// Parse node and add to local node list
+			Node mapNode = Node::fromDICT(node, nodeList);
+			nodeList.push_back(&mapNode);
+
+			// Ignore root node
+			if (node.refbit == 0xffffffff) {
+				continue;
+			}
+
+			// Parse model and add to model list
+			T mesh = readFn(node.realDataOffset, diffEndian);
+			map[mapNode] = mesh;
+		}
+	}
 }
