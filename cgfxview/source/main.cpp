@@ -2,7 +2,8 @@
 
 #include <cstdio>
 
-#include <formatters/CGFX.h>
+#include <formats/CGFX.h>
+#include <utils/exceptions.h>
 
 bool readFile(const char* path, uint8_t** buffer, size_t* bufsize) {
 	// Open file handle
@@ -35,7 +36,7 @@ static inline std::string printVec3(const cgfx::Vector3& vec3) {
 	return std::string(s, len);
 }
 
-void printInfo(const cgfx::CGFXData& cgfx) {
+void printInfo(const cgfx::CGFX& cgfx) {
 	std::printf("CGFX ver. %x - %lu blocks\r\n",
 	            cgfx.version,
 	            cgfx.blockCount);
@@ -57,7 +58,7 @@ void printInfo(const cgfx::CGFXData& cgfx) {
 					printVec3(model.rotation).c_str(),
 					printVec3(model.scale).c_str());
 
-		std::printf("  %d meshes\r\n",
+		std::printf("  %llu meshes\r\n",
 					model.meshes.size());
 		for (const std::pair<cgfx::Node, cgfx::Mesh>& meshPair : model.meshes) {
 			const cgfx::Mesh& mesh = meshPair.second;
@@ -138,14 +139,16 @@ int main(int argc, char *argv[]) {
 	}
 
 	cgfx::CGFX cgfxFile;
-	if (!cgfxFile.loadFile(data, size)) {
-		fprintf(stderr, "FATAL: CGFX parse failure\r\n");
+	try {
+		cgfxFile = cgfx::CGFX::read(data);
+	} catch (const cgfx::ParseException& e) {
+		fprintf(stderr, "FATAL: Cannot parse CGFX file (%s): %s", e.format.c_str(), e.what());
 		return EXIT_FAILURE;
 	}
 
 	if ((flags & FlPrintInfo) != 0) {
 		std::printf("Info for %s:\r\n\r\n", filePath.c_str());
-		printInfo(cgfxFile.data());
+		printInfo(cgfxFile);
 
 		// Hacky, but easier than setting up a better debugging env
 		std::getchar();

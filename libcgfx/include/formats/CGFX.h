@@ -6,7 +6,6 @@
 #include <vector>
 
 namespace cgfx {
-
 	enum Endianess : uint16_t {
 		DiffEndian = 0xFFFE,
 		SameEndian = 0xFEFF
@@ -26,10 +25,16 @@ namespace cgfx {
 
 	struct Vector3 {
 		float x, y, z;
+
+		static Vector3 read(const uint8_t* data, const bool diffEndian);
+		//TODO bool write(uint8_t** data, size_t* size)
 	};
 
 	struct Mat43 {
 		float a[4*3];
+
+		static Mat43 read(const uint8_t* data, const bool diffEndian);
+		//TODO bool write(uint8_t** data, size_t* size)
 	};
 
 	struct Mesh {
@@ -47,6 +52,9 @@ namespace cgfx {
 		bool     visible;
 		uint8_t  renderPriority;
 		uint16_t meshNodeVisibilityIndex;
+
+		static Mesh read(const uint8_t* data, const bool diffEndian);
+		//TODO bool write(uint8_t** data, size_t* size)
 	};
 
 	struct Shape {
@@ -83,6 +91,9 @@ namespace cgfx {
 		std::map<Node, Material> materials;
 
 		SkeletonInfo skeleton;
+
+		static Model read(const uint8_t* data, const bool diffEndian);
+		//TODO bool write(uint8_t** data, size_t* size)
 	};
 
 	enum TexFormat : uint32_t {
@@ -115,6 +126,9 @@ namespace cgfx {
 		TexFormat format;
 
 		std::vector<uint8_t> data;
+
+		static Texture read(const uint8_t* data, const bool diffEndian);
+		//TODO bool write(uint8_t** data, size_t* size);
 	};
 
 	struct LUT {
@@ -169,7 +183,7 @@ namespace cgfx {
 		//TODO
 	};
 
-	struct CGFXData {
+	struct CGFX {
 		uint16_t endianess;
 		uint16_t version;
 		uint32_t blockCount;
@@ -191,5 +205,8 @@ namespace cgfx {
 		std::map<Node, CameraAnimation> cameraAnimations;
 		std::map<Node, MaterialAnimation> materialAnimations;
 		std::map<Node, VisibilityAnimation> visibilityAnimations;
+
+		static CGFX read(const uint8_t* data);
+		bool write(uint8_t** data, size_t* size);
 	};
 }

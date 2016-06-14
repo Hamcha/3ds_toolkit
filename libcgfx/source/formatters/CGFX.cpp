@@ -1,7 +1,10 @@
-#include <formatters/CGFX.h>
+#include <formats/CGFX.h>
+#include <utils/exceptions.h>
 #include <utils/endian.h>
 
 #include <functional>
+
+using namespace cgfx;
 
 struct DICTNode {
 	uint32_t refbit;
@@ -16,15 +19,17 @@ struct DICTNode {
 struct DICT {
 	uint32_t entriesCount;
 	std::vector<DICTNode> nodes;
+
+	static DICT read(const uint8_t* data, const bool diffEndian);
+	//TODO write(uint8_t** data, size_t* size);
 };
 
-static DICT readDICT(const uint8_t* data, const bool diffEndian) {
+DICT DICT::read(const uint8_t* data, const bool diffEndian) {
 	DICT out;
 
 	// Check segment signature
 	if (strncmp("DICT", (char*)data, 4) != 0) {
-		std::fprintf(stderr, "PARSE ERR: Failed DICT signature check\r\n");
-		return out;
+		throw ParseException("DICT", "Failed DICT signature check");
 	}
 
 	// Read # of entries
@@ -62,26 +67,26 @@ static DICT readDICT(const uint8_t* data, const bool diffEndian) {
 	return out;
 }
 
-static cgfx::Node nodeFromDICT(const DICTNode& src, const std::vector<cgfx::Node*>& nodes) {
-	return cgfx::Node{ src.refbit, nodes.at(src.left), nodes.at(src.right), std::string((const char*)src.realNameOffset) };
+static Node nodeFromDICT(const DICTNode& src, const std::vector<Node*>& nodes) {
+	return Node{ src.refbit, nodes.at(src.left), nodes.at(src.right), std::string((const char*)src.realNameOffset) };
 }
 
 template<typename T>
-static void readDICTMap(const uint8_t* data, bool diffEndian, std::function<T(const uint8_t*, bool)> readFn, std::map<cgfx::Node, T>& map) {
+static void readDICTMap(const uint8_t* data, bool diffEndian, std::function<T(const uint8_t*, bool)> readFn, std::map<Node, T>& map) {
 	uint32_t dictOffset;
 	memcpy(&dictOffset, data, 4);
 	if (diffEndian) {
 		endianSwap(dictOffset);
 	}
 
-	DICT dict = readDICT(data + dictOffset, diffEndian);
+	DICT dict = DICT::read(data + dictOffset, diffEndian);
 
 	// Grab and parse each texture from the DICT
-	std::vector<cgfx::Node*> nodeList = {};
+	std::vector<Node*> nodeList = {};
 	nodeList.resize(dict.nodes.size());
 	for (const DICTNode& node : dict.nodes) {
 		// Parse node and add to local node list
-		cgfx::Node mapNode = nodeFromDICT(node, nodeList);
+		Node mapNode = nodeFromDICT(node, nodeList);
 		nodeList.push_back(&mapNode);
 
 		// Ignore root node
@@ -95,8 +100,8 @@ static void readDICTMap(const uint8_t* data, bool diffEndian, std::function<T(co
 	}
 }
 
-static cgfx::Vector3 readVec3(const uint8_t* data, const bool diffEndian) {
-	cgfx::Vector3 vec;
+Vector3 Vector3::read(const uint8_t* data, const bool diffEndian) {
+	Vector3 vec;
 	memcpy(&vec.x, data,     4);
 	memcpy(&vec.y, data + 4, 4);
 	memcpy(&vec.z, data + 8, 4);
@@ -108,8 +113,8 @@ static cgfx::Vector3 readVec3(const uint8_t* data, const bool diffEndian) {
 	return vec;
 }
 
-static cgfx::Mat43 readMat43(const uint8_t* data, const bool diffEndian) {
-	cgfx::Mat43 mat;
+Mat43 Mat43::read(const uint8_t* data, const bool diffEndian) {
+	Mat43 mat;
 	memcpy(&mat.a, data, 4*(4*3));
 
 	if (diffEndian) {
@@ -121,13 +126,12 @@ static cgfx::Mat43 readMat43(const uint8_t* data, const bool diffEndian) {
 	return mat;
 }
 
-static cgfx::Mesh readMesh(const uint8_t* data, const bool diffEndian) {
-	cgfx::Mesh mesh;
+Mesh Mesh::read(const uint8_t* data, const bool diffEndian) {
+	Mesh mesh;
 
 	// Check segment signature
 	if (strncmp("SOBJ", (char*)(data + 0x04), 4) != 0) {
-		std::fprintf(stderr, "PARSE ERR: Failed SOBJ signature check\r\n");
-		return mesh;
+		throw ParseException("SOBJ", "Failed SOBJ signature check");
 	}
 
 	// Copy basic data from header
@@ -149,13 +153,12 @@ static cgfx::Mesh readMesh(const uint8_t* data, const bool diffEndian) {
 	return mesh;
 }
 
-static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
-	cgfx::Model mdl;
+Model Model::read(const uint8_t* data, const bool diffEndian) {
+	Model mdl;
 
 	// Check segment signature
 	if (strncmp("CMDL", (char*)(data + 0x04), 4) != 0) {
-		std::fprintf(stderr, "PARSE ERR: Failed CMDL signature check\r\n");
-		return mdl;
+		throw ParseException("CMDL", "Failed CMDL signature check");
 	}
 
 	// Copy basic data from header
@@ -175,13 +178,13 @@ static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 	mdl.name = std::string((const char*)(data + 0x0c + nameOffset));
 
 	// Get position/rotation/scale
-	mdl.scale    = readVec3(data + 0x30, diffEndian);
-	mdl.rotation = readVec3(data + 0x3c, diffEndian);
-	mdl.position = readVec3(data + 0x48, diffEndian);
+	mdl.scale    = Vector3::read(data + 0x30, diffEndian);
+	mdl.rotation = Vector3::read(data + 0x3c, diffEndian);
+	mdl.position = Vector3::read(data + 0x48, diffEndian);
 
 	// Read local/world matrices
-	mdl.local = readMat43(data + 0x54, diffEndian);
-	mdl.world = readMat43(data + 0x84, diffEndian);
+	mdl.local = Mat43::read(data + 0x54, diffEndian);
+	mdl.world = Mat43::read(data + 0x84, diffEndian);
 
 	// Read meshes
 	uint32_t meshCount;
@@ -191,7 +194,7 @@ static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 	}
 
 	if (meshCount > 0) {
-		readDICTMap<cgfx::Mesh>(data + 0xb8, diffEndian, readMesh, mdl.meshes);
+		readDICTMap<Mesh>(data + 0xb8, diffEndian, Mesh::read, mdl.meshes);
 	}
 
 	//TODO Parse rest of the model (duh)
@@ -199,13 +202,12 @@ static cgfx::Model readCMDL(const uint8_t* data, const bool diffEndian) {
 	return mdl;
 }
 
-static cgfx::Texture readTXOB(const uint8_t* data, const bool diffEndian) {
-	cgfx::Texture tex;
+Texture Texture::read(const uint8_t* data, const bool diffEndian) {
+	Texture tex;
 
 	// Check segment signature
 	if (strncmp("TXOB", (char*)(data + 0x04), 4) != 0) {
-		std::fprintf(stderr, "PARSE ERR: Failed TXOB signature check\r\n");
-		return tex;
+		throw ParseException("TXOB", "Failed TXOB signature check");
 	}
 
 	// Copy basic data from header
@@ -253,16 +255,17 @@ static cgfx::Texture readTXOB(const uint8_t* data, const bool diffEndian) {
 	return tex;
 }
 
-bool cgfx::CGFX::loadFile(const uint8_t* data, const size_t size) {
+CGFX CGFX::read(const uint8_t* data) {
+	CGFX cgdata;
+
 	// Check file signature
 	if (strncmp("CGFX", (char*)data, 4) != 0) {
-		std::fprintf(stderr, "PARSE ERR: Failed CFGX signature check in CGFX file\r\n");
-		return false;
+		throw ParseException("CGFX", "Failed CFGX signature check in CGFX file");
 	}
 
 	// Get params from CGFX header
 	memcpy(&cgdata.endianess,  data + 0x04, 2);
-	diffEndian = cgdata.endianess == DiffEndian;
+	bool diffEndian = cgdata.endianess == DiffEndian;
 
 	memcpy(&cgdata.version,    data + 0x0a, 2);
 	memcpy(&cgdata.blockCount, data + 0x10, 4);
@@ -276,9 +279,7 @@ bool cgfx::CGFX::loadFile(const uint8_t* data, const size_t size) {
 	static const size_t dataOff = 0x14;
 	// Check data signature
 	if (strncmp("DATA", (char*)(data + dataOff), 4) != 0) {
-		std::fprintf(stderr, "PARSE ERR: Failed DATA signature check\r\n");
-		//TODO Find a way to say what error we encountered
-		return false;
+		throw ParseException("CGFX", "Failed DATA signature check");
 	}
 
 	uint32_t modelCount, texCount;
@@ -291,19 +292,18 @@ bool cgfx::CGFX::loadFile(const uint8_t* data, const size_t size) {
 
 	// Read and parse models
 	if (modelCount > 0) {
-		readDICTMap<Model>(data + dataOff + 0x0c, diffEndian, readCMDL, cgdata.models);
+		readDICTMap<Model>(data + dataOff + 0x0c, diffEndian, Model::read, cgdata.models);
 	}
 
 	// Read and parse textures
 	if (texCount > 0) {
-		readDICTMap<Texture>(data + dataOff + 0x14, diffEndian, readTXOB, cgdata.textures);
+		readDICTMap<Texture>(data + dataOff + 0x14, diffEndian, Texture::read, cgdata.textures);
 	}
 
-	hasLoaded = true;
-	return true;
+	return cgdata;
 }
 
-bool cgfx::CGFX::serialize(uint8_t** data, size_t* size) {
+bool CGFX::write(uint8_t** data, size_t* size) {
 	//TODO Serialize everything else first
 
 	// Initialize with signature and little-endianess
