@@ -106,8 +106,8 @@ namespace cgfx {
 		Mat43 local;
 		Mat43 world;
 
-		std::map<Node, Mesh> meshes;
-		std::map<Node, Shape> shapes;
+		std::vector<Mesh> meshes;
+		std::vector<Shape> shapes;
 		std::map<Node, MeshNode> meshNodes;
 		std::map<Node, Material> materials;
 

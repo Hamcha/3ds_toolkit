@@ -28,6 +28,9 @@ Mesh Mesh::read(const uint8_t* data, const bool diffEndian) {
 	}
 	mesh.name = std::string((const char*)(data + 0x0c + nameOffset));
 
+	// Copy position offset
+	mesh.positionOffset = Vector3::read(data + 0x20, diffEndian);
+
 	return mesh;
 }
 
@@ -72,7 +75,20 @@ Model Model::read(const uint8_t* data, const bool diffEndian) {
 	}
 
 	if (meshCount > 0) {
-		readDictMap<Mesh>(data + 0xb8, diffEndian, Mesh::read, mdl.meshes);
+		uint32_t meshOffsetsLoc;
+		memcpy(&meshOffsetsLoc, data + 0xb8, 4);
+		if (diffEndian) {
+			endianSwap(meshOffsetsLoc);
+		}
+
+		for (uint32_t i = 0; i < meshCount; i++) {
+			const uint32_t meshBaseOff = 0xb8 + meshOffsetsLoc + (i * 4);
+			uint32_t meshOffset;
+			memcpy(&meshOffset, data + meshBaseOff, 4);
+
+			Mesh mesh = Mesh::read(data + meshBaseOff + meshOffset, diffEndian);
+			mdl.meshes.push_back(mesh);
+		}
 	}
 
 	//TODO Parse rest of the model (duh)

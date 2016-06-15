@@ -60,12 +60,10 @@ void printInfo(const cgfx::CGFX& cgfx) {
 
 		std::printf("  %llu meshes\r\n",
 					model.meshes.size());
-		for (const std::pair<cgfx::Node, cgfx::Mesh>& meshPair : model.meshes) {
-			const cgfx::Mesh& mesh = meshPair.second;
-			std::printf("  -  Mesh \"%s\" (id %s/%x)\r\n",
+		for (const cgfx::Mesh& mesh : model.meshes) {
+			std::printf("  -  Mesh \"%s\" Off %s\r\n",
 						mesh.name.c_str(),
-						meshPair.first.name.c_str(),
-						meshPair.first.ref);
+						printVec3(mesh.positionOffset).c_str());
 		}
 		std::printf("\r\n");
 	}
@@ -143,6 +141,8 @@ int main(int argc, char *argv[]) {
 		cgfxFile = cgfx::CGFX::read(data);
 	} catch (const cgfx::ParseException& e) {
 		fprintf(stderr, "FATAL: Cannot parse CGFX file (%s): %s", e.format.c_str(), e.what());
+		// Hacky, but easier than setting up a better debugging env
+		std::getchar();
 		return EXIT_FAILURE;
 	}
 
