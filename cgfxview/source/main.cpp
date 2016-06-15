@@ -61,7 +61,7 @@ void printInfo(const cgfx::CGFX& cgfx) {
 		std::printf("  %llu meshes\r\n",
 					model.meshes.size());
 		for (const cgfx::Mesh& mesh : model.meshes) {
-			std::printf("  -  Mesh \"%s\" Off %s\r\n",
+			std::printf("   - Mesh \"%s\" Off %s\r\n",
 						mesh.name.c_str(),
 						printVec3(mesh.positionOffset).c_str());
 		}
